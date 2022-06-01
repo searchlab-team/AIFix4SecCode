@@ -10,6 +10,7 @@ import com.google.gson.JsonParser;
 import eu.assuremoss.framework.api.*;
 import eu.assuremoss.framework.model.CodeModel;
 import eu.assuremoss.framework.model.VulnerabilityEntry;
+import eu.assuremoss.framework.modules.compiler.GradlePatchCompiler;
 import eu.assuremoss.framework.modules.compiler.MavenPatchCompiler;
 import eu.assuremoss.framework.modules.src.LocalSourceFolder;
 import eu.assuremoss.utils.Configuration;
@@ -82,6 +83,8 @@ public class VulnRepairDriver {
         MLOG.info(String.format("Detected %d vulnerabilities", vulnerabilityLocations.size()));
         vulnerabilityLocations.forEach(vulnEntry -> MLOG.fInfo(vulnEntry.getType() + " -> " + vulnEntry.getStartLine()));
 
+        boolean isGradleProject = (new File(scc + "/build.gradle")).exists();
+
         // == Transform code / repair ==
         Map<String, List<JSONObject>> problemFixMap = new HashMap<>();
 
@@ -89,7 +92,7 @@ public class VulnRepairDriver {
         for (VulnerabilityEntry vulnEntry : vulnerabilityLocations) {
             // - Init -
             vulnIndex++;
-            PatchCompiler comp = new MavenPatchCompiler();
+            PatchCompiler comp = isGradleProject ? new GradlePatchCompiler() : new MavenPatchCompiler();
 
             // - Generate repair patches -
             MLOG.ninfo(String.format("Generating patches for %d/%d vulnerability", vulnIndex, vulnerabilityLocations.size()));

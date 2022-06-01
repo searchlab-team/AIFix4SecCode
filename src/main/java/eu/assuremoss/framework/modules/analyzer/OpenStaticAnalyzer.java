@@ -6,6 +6,7 @@ import eu.assuremoss.framework.api.PatchValidator;
 import eu.assuremoss.framework.api.VulnerabilityDetector;
 import eu.assuremoss.framework.model.CodeModel;
 import eu.assuremoss.framework.model.VulnerabilityEntry;
+import eu.assuremoss.framework.modules.compiler.GradlePatchCompiler;
 import eu.assuremoss.framework.modules.compiler.MavenPatchCompiler;
 import eu.assuremoss.utils.Pair;
 import eu.assuremoss.utils.Utils;
@@ -41,37 +42,71 @@ public class OpenStaticAnalyzer implements CodeAnalyzer, VulnerabilityDetector, 
 
     @Override
     public List<CodeModel> analyzeSourceCode(File srcLocation, boolean isValidation) {
-        MavenPatchCompiler mpc = new MavenPatchCompiler();
-        mpc.compile(srcLocation, true, true);
+        boolean isGradleProject = (new File(srcLocation.getAbsolutePath() + "/build.gradle")).exists();
 
+        String fbFileListPath = String.valueOf(Paths.get(resultsPath, "fb_file_list.txt"));
+        List<CodeModel> resList = new ArrayList<>();
+        String[] command;
         String workingDir = isValidation ? validation_results_path : resultsPath;
 
-        String fbFileListPath = String.valueOf(Paths.get(workingDir, "fb_file_list.txt"));
-        try (FileWriter fw = new FileWriter(fbFileListPath)) {
-            fw.write(String.valueOf(Paths.get(srcLocation.getAbsolutePath(), "target", "classes")));
-        } catch (IOException e) {
-            LOG.error(e);
+        if(isGradleProject){
+            GradlePatchCompiler gpc = new GradlePatchCompiler();
+            gpc.compile(srcLocation ,true,true);
+
+            try (FileWriter fw = new FileWriter(fbFileListPath)) {
+                fw.write(String.valueOf(Paths.get(srcLocation.getAbsolutePath(), "build", "classes")));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            command = new String[]{
+                    new File(osaPath, osaEdition + "Java" + Utils.getExtension()).getAbsolutePath(),
+                    "-resultsDir=" + workingDir,
+                    "-projectName=" + projectName,
+                    "-projectBaseDir=" + srcLocation,
+                    "-cleanResults=0",
+                    "-currentDate=0",
+                    "-FBFileList=" + fbFileListPath,
+                    "-runFB=true",
+                    "-runPMD=false",
+                    "-runMET=false",
+                    "-runUDM=false",
+                    "-runDCF=false",
+                    "-runMetricHunter=false",
+                    "-runLIM2Patterns=false",
+                    "-FBOptions=-auxclasspath " + Paths.get(srcLocation.getAbsolutePath(), "build", "dependency")
+            };
+        }
+        else
+        {
+            MavenPatchCompiler mpc = new MavenPatchCompiler();
+            mpc.compile(srcLocation, true, true);
+
+            try (FileWriter fw = new FileWriter(fbFileListPath)) {
+                fw.write(String.valueOf(Paths.get(srcLocation.getAbsolutePath(), "target", "classes")));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            command = new String[] {
+                    new File(osaPath, osaEdition + "Java" + Utils.getExtension()).getAbsolutePath(),
+                    "-resultsDir=" + workingDir,
+                    "-projectName=" + projectName,
+                    "-projectBaseDir=" + srcLocation,
+                    "-cleanResults=0",
+                    "-currentDate=0",
+                    "-FBFileList=" + fbFileListPath,
+                    "-runFB=true",
+                    "-runPMD=false",
+                    "-runMET=false",
+                    "-runUDM=false",
+                    "-runDCF=false",
+                    "-runMetricHunter=false",
+                    "-runLIM2Patterns=false",
+                    "-FBOptions=-auxclasspath " + Paths.get(srcLocation.getAbsolutePath(), "target", "dependency")
+            };
         }
 
-        List<CodeModel> resList = new ArrayList<>();
-
-        String[] command = new String[] {
-                new File(osaPath, osaEdition + "Java" + Utils.getExtension()).getAbsolutePath(),
-                "-resultsDir=" + workingDir,
-                "-projectName=" + projectName,
-                "-projectBaseDir=" + srcLocation,
-                "-cleanResults=0",
-                "-currentDate=0",
-                "-FBFileList=" + fbFileListPath,
-                "-runFB=true",
-                "-runPMD=false",
-                "-runMET=false",
-                "-runUDM=false",
-                "-runDCF=false",
-                "-runMetricHunter=false",
-                "-runLIM2Patterns=false",
-                "-FBOptions=-auxclasspath " + Paths.get(srcLocation.getAbsolutePath(), "target", "dependency")
-        };
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         runProcess(processBuilder);
 
