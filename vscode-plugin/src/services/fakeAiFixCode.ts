@@ -85,7 +85,7 @@ export function getIssuesSync() {
             (issuesJson as any)[key] = patchJson[key];
             (issuesJson as any)[key].forEach((issue: any) => issue["JavaFileName"] = fileName);
           }
-          (issuesJson as any)[key].forEach((issue: any) => issue.patches.sort((a: any, b: any) => b.bscore - a.score));
+          (issuesJson as any)[key].forEach((issue: any) => issue.patches.sort((a: any, b: any) => b.score - a.score));
         })
       }
     });
