@@ -40,6 +40,15 @@ public class CodeSimilarityAlgorithm implements PatchPrioritizeAlgorithm {
             "token", "hamming",
             "bagofwords", "relativeeuclidean"
     );
+
+    private static final Map<String, String> patchModes = Map.of(
+            "word2vec", "partial",
+            "glove", "partial",
+            "binaryast", "full",
+            "doc2vec", "partial",
+            "token", "partial",
+            "bagofwords", "partial"
+    );
     private final String prioritizerPath;
     private final String prioritizerMode;
 
@@ -113,9 +122,17 @@ public class CodeSimilarityAlgorithm implements PatchPrioritizeAlgorithm {
         return comparers.getOrDefault(prioritizerMode, "cossim");
     }
 
+    private String resolvePatchMode(String prioritizerMode){
+        return patchModes.getOrDefault(prioritizerMode, "partial");
+    }
     private void runSorter(String patchesPath, String prioritizerResultsPaths){
-        ProcessBuilder processBuilder = new ProcessBuilder("python", prioritizerPath, "--vectorizer", resolveVectorizer(prioritizerMode), "--comparer", resolveComparer(prioritizerMode), patchesPath, prioritizerResultsPaths);
-        processBuilder.redirectErrorStream(true);
+        ProcessBuilder processBuilder = new ProcessBuilder("python",
+                prioritizerPath,
+                "--vectorizer", resolveVectorizer(prioritizerMode),
+                "--comparer", resolveComparer(prioritizerMode),
+                "--filePatcherMode", resolvePatchMode(prioritizerMode),
+                patchesPath,
+                prioritizerResultsPaths);processBuilder.redirectErrorStream(true);
         ProcessRunner.run(processBuilder);
     }
 
