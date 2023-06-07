@@ -420,7 +420,7 @@ export function init(
           // if executable has finished:
           logging.LogInfo("Analyzer executable finished.");
           // Get Output from analyzer:
-          let output = fakeAiFixCode.getIssuesSync();
+          let output = fakeAiFixCode.getIssuesSync(currentFilePath);
           logging.LogInfo(
             "issues got from analyzer output: " + JSON.stringify(output)
           );

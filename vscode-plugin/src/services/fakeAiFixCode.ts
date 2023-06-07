@@ -26,7 +26,7 @@ export async function getIssues() {
   return issuesJson;
 }
 
-export function getIssuesSync() {
+export function getIssuesSync(currentFilePath = "") {
   let issuesPath: string | undefined = "";
   if (
     workspace
@@ -62,17 +62,7 @@ export function getIssuesSync() {
       if (path.length) {
         var patchJson = parseJson(fs.readFileSync(path!, utf8Stream));
         var fileName = path.split(/[\/\\]/).pop().replace(".json", "");
-        Object.keys(issuesJson).forEach((key: any) => {
-          var i = issuesJson[key].length
-          while (i--) {
-            if (issuesJson[key][i]["JavaFileName"] === fileName) {
-              issuesJson[key].splice(i, 1);
-            }
-          }
-          if (!issuesJson[key].length) {
-            delete issuesJson[key];
-          }
-        });
+        deletePatchesFromIssuesJson(path);
         Object.keys(patchJson).forEach((key: any) => {
           if (issuesJson!.hasOwnProperty(key)) {
             patchJson[key].forEach((issue: any) => {
@@ -94,6 +84,9 @@ export function getIssuesSync() {
       issuesJson[key].sort((a: any, b: any) => a["textRange"]["startLine"] - b["textRange"]["startLine"]);
       issuesJson[key].sort((a: any, b: any) => a["JavaFileName"].localeCompare(b["JavaFileName"]));
     });
+  }
+  else if (currentFilePath.length) {
+    deletePatchesFromIssuesJson(currentFilePath);
   }
   return issuesJson;
 }
@@ -141,6 +134,21 @@ export async function getFixes(leftPath: string, patchPath: string) {
   }
 
   return fixes;
+}
+
+function deletePatchesFromIssuesJson(currentFilePath: String) {
+  var fileName = currentFilePath.split(/[\/\\]/)!.pop()!.replace(".json", "");
+  Object.keys(issuesJson).forEach((key: any) => {
+    var i = issuesJson[key].length
+    while (i--) {
+      if (issuesJson[key][i]["JavaFileName"] === fileName) {
+        issuesJson[key].splice(i, 1);
+      }
+    }
+    if (!issuesJson[key].length) {
+      delete issuesJson[key];
+    }
+  });
 }
 
 function hasSubArray(master: any, sub: any) {
